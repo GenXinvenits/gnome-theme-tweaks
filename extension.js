@@ -132,6 +132,8 @@ export default class GnomeThemeTweaksExtension extends Extension {
         this._autoSignals = [];
         this._cursorSignals = [];
         this._accentRun = 0;
+        this._backgroundMonitor = null;
+        this._backgroundMonitorTimeout = 0;
 
         this._signals.push(this._interface.connect('changed::accent-color', () => this._applyAll()));
         this._signals.push(this._interface.connect('changed::color-scheme', () => this._applyAll()));
@@ -147,6 +149,11 @@ export default class GnomeThemeTweaksExtension extends Extension {
         this._disconnectSignals(this._cursorSignals, this._interface);
         this._disconnectSignals(this._signals.slice(0,2), this._interface);
         if (this._signals[2] && this._preferences) this._preferences.disconnect(this._signals[2]);
+        this._stopBackgroundMonitor();
+        if (this._backgroundMonitorTimeout) {
+            GLib.source_remove(this._backgroundMonitorTimeout);
+            this._backgroundMonitorTimeout = 0;
+        }
         this._signals = [];
         this._autoSignals = [];
         this._cursorSignals = [];
@@ -226,10 +233,6 @@ export default class GnomeThemeTweaksExtension extends Extension {
     }
 
     _setupAutoAccent() {
-        // Always install the wallpaper/settings listeners. Previously these listeners
-        // were only installed when Auto Accent was already enabled at extension start,
-        // which made the feature state-dependent and caused preference changes to
-        // trigger unwanted accent recalculation through _applyAll().
         const onScheme = this._backgroundSettings.connect('changed::picture-uri', () => {
             if (this._preferences.get_boolean('auto-accent-enable') &&
                 this._interface.get_string('color-scheme') !== PREFER_DARK)
@@ -244,9 +247,7 @@ export default class GnomeThemeTweaksExtension extends Extension {
 
         const onPref = this._preferences.connect('changed::auto-accent-enable', () => {
             if (this._preferences.get_boolean('auto-accent-enable')) {
-                // Enabling Auto Accent performs one initial analysis. After that,
-                // manual accent changes are left alone until the wallpaper changes
-                // or the user explicitly chooses Force Accent Refresh.
+                this._setupBackgroundMonitor();
                 this._scheduleAccentRefresh();
                 if (this._preferences.get_boolean('auto-accent-show-indicator'))
                     this._createAutoIndicator();
@@ -256,6 +257,7 @@ export default class GnomeThemeTweaksExtension extends Extension {
                     GLib.source_remove(this._accentTimeout);
                     this._accentTimeout = 0;
                 }
+                this._stopBackgroundMonitor();
                 this._destroyAutoIndicator();
             }
         });
@@ -271,15 +273,51 @@ export default class GnomeThemeTweaksExtension extends Extension {
         this._autoSignals.push(onScheme, onSchemeDark, onPref, onIndicator);
 
         if (this._preferences.get_boolean('auto-accent-enable')) {
+            this._setupBackgroundMonitor();
             if (this._preferences.get_boolean('auto-accent-show-indicator'))
                 this._createAutoIndicator();
             this._scheduleAccentRefresh();
         }
     }
 
-    _scheduleAccentRefresh() {
+    _setupBackgroundMonitor() {
+        if (this._backgroundMonitor || !this._preferences?.get_boolean('auto-accent-enable')) return;
+        try {
+            const configDir = Gio.File.new_for_path(GLib.get_user_config_dir());
+            this._backgroundMonitor = configDir.monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, null);
+            this._backgroundMonitor.connect('changed', (_monitor, file, otherFile, eventType) => {
+                const changedName = file?.get_basename();
+                const otherName = otherFile?.get_basename();
+                if (changedName !== 'background' && otherName !== 'background') return;
+                if (eventType !== Gio.FileMonitorEvent.CHANGED &&
+                    eventType !== Gio.FileMonitorEvent.CHANGES_DONE_HINT &&
+                    eventType !== Gio.FileMonitorEvent.CREATED &&
+                    eventType !== Gio.FileMonitorEvent.MOVED_IN &&
+                    eventType !== Gio.FileMonitorEvent.MOVED_OUT &&
+                    eventType !== Gio.FileMonitorEvent.DELETED) return;
+                this._scheduleAccentRefresh(600);
+            });
+            journal(`Watching ${configDir.get_path()}/background for wallpaper changes`);
+        } catch (e) {
+            this._backgroundMonitor = null;
+            journal(`Could not monitor wallpaper file: ${e}`, true);
+        }
+    }
+
+    _stopBackgroundMonitor() {
+        if (this._backgroundMonitor) {
+            try { this._backgroundMonitor.cancel(); } catch (_) {}
+            this._backgroundMonitor = null;
+        }
+        if (this._backgroundMonitorTimeout) {
+            GLib.source_remove(this._backgroundMonitorTimeout);
+            this._backgroundMonitorTimeout = 0;
+        }
+    }
+
+    _scheduleAccentRefresh(delay = 150) {
         if (this._accentTimeout) GLib.source_remove(this._accentTimeout);
-        this._accentTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+        this._accentTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
             this._accentTimeout = 0;
             this._setAccentFromWallpaper();
             return GLib.SOURCE_REMOVE;
