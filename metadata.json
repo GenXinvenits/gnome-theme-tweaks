@@ -1,0 +1,16 @@
+{
+  "name": "GNOME Theme Tweaks",
+  "description": "A polished appearance manager for GNOME themes, accent colors, icon themes, cursor themes, and GTK 4 styling.",
+  "uuid": "gnome-theme-tweaks@dibacii.com",
+  "version": 4,
+  "version-name": "2.2",
+  "shell-version": [
+    "47",
+    "48",
+    "49",
+    "50"
+  ],
+  "settings-schema": "org.gnome.shell.extensions.gnome-theme-tweaks",
+  "url": "https://dibacii.com/",
+  "gettext-domain": "gnome-theme-tweaks"
+}

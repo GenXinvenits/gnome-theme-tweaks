@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.gnome-theme-tweaks" path="/org/gnome/shell/extensions/gnome-theme-tweaks/">
+    <key name="gtk-theme-light" type="s"><default>"Adwaita"</default></key>
+    <key name="gtk-theme-dark" type="s"><default>"Adwaita-dark"</default></key>
+    <key name="user-theme-light" type="s"><default>"Adwaita"</default></key>
+    <key name="user-theme-dark" type="s"><default>"Adwaita-dark"</default></key>
+    <key name="set-link-gtk4" type="b"><default>false</default></key>
+    <key name="set-theme-path" type="s"><default>"/usr/share/themes"</default></key>
+    <key name="change-app-colors" type="b"><default>true</default></key>
+    <key name="blue-icon-theme" type="s"><default>"Adwaita"</default></key>
+    <key name="teal-icon-theme" type="s"><default>"Adwaita-teal"</default></key>
+    <key name="green-icon-theme" type="s"><default>"Adwaita-green"</default></key>
+    <key name="yellow-icon-theme" type="s"><default>"Adwaita-yellow"</default></key>
+    <key name="orange-icon-theme" type="s"><default>"Adwaita-orange"</default></key>
+    <key name="red-icon-theme" type="s"><default>"Adwaita-red"</default></key>
+    <key name="pink-icon-theme" type="s"><default>"Adwaita-pink"</default></key>
+    <key name="purple-icon-theme" type="s"><default>"Adwaita-purple"</default></key>
+    <key name="slate-icon-theme" type="s"><default>"Adwaita-slate"</default></key>
+    <key name="brown-icon-theme" type="s"><default>"Adwaita-brown"</default></key>
+
+    <key name="auto-accent-enable" type="b"><default>false</default></key>
+    <key name="auto-accent-show-indicator" type="b"><default>false</default></key>
+    <key name="auto-accent-highlight-mode" type="b"><default>false</default></key>
+    <key name="auto-accent-debug-logging" type="b"><default>false</default></key>
+    <key name="auto-accent-disable-cache" type="b"><default>false</default></key>
+
+    <key name="cursor-follow-color-scheme" type="b"><default>true</default></key>
+    <key name="cursor-theme-light" type="s"><default>"Fluent-cursors"</default></key>
+    <key name="cursor-theme-dark" type="s"><default>"Fluent-dark-cursors"</default></key>
+  </schema>
+</schemalist>
