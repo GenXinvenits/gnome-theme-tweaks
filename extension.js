@@ -34,17 +34,26 @@ class HueRange {
     constructor(lowerBound, upperBound) { this.lowerBound = lowerBound; this.upperBound = upperBound; }
 }
 class AccentColour {
-    constructor(name, r, g, b, hueRange) { this.name = name; this.r = r; this.g = g; this.b = b; this.hueRange = hueRange; }
+    constructor(name, r, g, b, hueRange) {
+        this.name = name; this.r = r; this.g = g; this.b = b; this.hueRange = hueRange;
+    }
 }
-function getSquaredEuclideanDistance(r1,g1,b1,r2,g2,b2) { return (r1-r2)**2 + (g1-g2)**2 + (b1-b2)**2; }
+function getSquaredEuclideanDistance(r1,g1,b1,r2,g2,b2) {
+    return (r1-r2)**2 + (g1-g2)**2 + (b1-b2)**2;
+}
 function isHueInRange(hue, range) {
-    return range.lowerBound <= range.upperBound ? hue >= range.lowerBound && hue <= range.upperBound : hue >= range.lowerBound || hue <= range.upperBound;
+    return range.lowerBound <= range.upperBound
+        ? hue >= range.lowerBound && hue <= range.upperBound
+        : hue >= range.lowerBound || hue <= range.upperBound;
 }
 function getClosestAccentColour(accentColours, r, g, b) {
-    const hue = getHueFromRGB(r,g,b), saturation = getSaturationFromRGB(r,g,b);
-    if (saturation < 5) return accentColours.findIndex(a => a.name === 'slate');
+    const hue = getHueFromRGB(r,g,b);
+    const saturation = getSaturationFromRGB(r,g,b);
+    if (saturation < 5)
+        return accentColours.findIndex(a => a.name === 'slate');
     const eligible = accentColours.filter(a => isHueInRange(hue, a.hueRange));
-    let best = eligible[0] ?? accentColours[0], distance = Number.MAX_VALUE;
+    let best = eligible[0] ?? accentColours[0];
+    let distance = Number.MAX_VALUE;
     for (const accent of eligible) {
         const d = getSquaredEuclideanDistance(r,g,b,accent.r,accent.g,accent.b);
         if (d < distance) { distance = d; best = accent; }
@@ -72,7 +81,9 @@ async function runColorThief(imagePath, extensionPath) {
         return Array(5).fill([0,0,0]);
     }
 }
-async function getBackgroundPalette(extensionPath, path) { return runColorThief(path, extensionPath); }
+async function getBackgroundPalette(extensionPath, path) {
+    return runColorThief(path, extensionPath);
+}
 async function applyClosestAccent(runId, getCurrentRun, extensionPath, accents, backgroundUri, cache, highlightMode, onWait, onError, onFinish) {
     const backgroundFile = Gio.File.new_for_uri(backgroundUri);
     const backgroundPath = backgroundFile.get_path();
@@ -85,6 +96,7 @@ async function applyClosestAccent(runId, getCurrentRun, extensionPath, accents, 
             });
         });
     } catch (e) { journal(e,true); onError(); return; }
+
     const hash = bytes.hash();
     const parserVersion = 2;
     if (await cache.get('parser-version') !== parserVersion) {
@@ -95,7 +107,9 @@ async function applyClosestAccent(runId, getCurrentRun, extensionPath, accents, 
     try {
         const info = await backgroundFile.query_info_async('standard::*', Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, GLib.PRIORITY_DEFAULT, null);
         if (info.get_content_type() === 'application/xml') { onError(); return; }
-    } catch (e) { journal(e,true); }
+    } catch (e) {
+        journal(e,true);
+    }
     if (palette === null) {
         onWait();
         palette = await getBackgroundPalette(extensionPath, backgroundPath);
@@ -216,12 +230,14 @@ export default class GnomeThemeTweaksExtension extends Extension {
 
     _setupAutoAccent() {
         const onScheme = this._backgroundSettings.connect('changed::picture-uri', () => {
-            if (this._preferences.get_boolean('auto-accent-enable') && this._interface.get_string('color-scheme') !== PREFER_DARK)
+            if (this._preferences.get_boolean('auto-accent-enable') &&
+                this._interface.get_string('color-scheme') !== PREFER_DARK)
                 this._scheduleAccentRefresh();
         });
 
         const onSchemeDark = this._backgroundSettings.connect('changed::picture-uri-dark', () => {
-            if (this._preferences.get_boolean('auto-accent-enable') && this._interface.get_string('color-scheme') === PREFER_DARK)
+            if (this._preferences.get_boolean('auto-accent-enable') &&
+                this._interface.get_string('color-scheme') === PREFER_DARK)
                 this._scheduleAccentRefresh();
         });
 
@@ -229,7 +245,8 @@ export default class GnomeThemeTweaksExtension extends Extension {
             if (this._preferences.get_boolean('auto-accent-enable')) {
                 this._setupBackgroundMonitor();
                 this._scheduleAccentRefresh();
-                if (this._preferences.get_boolean('auto-accent-show-indicator')) this._createAutoIndicator();
+                if (this._preferences.get_boolean('auto-accent-show-indicator'))
+                    this._createAutoIndicator();
             } else {
                 this._accentRun++;
                 if (this._accentTimeout) {
@@ -242,7 +259,8 @@ export default class GnomeThemeTweaksExtension extends Extension {
         });
 
         const onIndicator = this._preferences.connect('changed::auto-accent-show-indicator', () => {
-            if (this._preferences.get_boolean('auto-accent-enable') && this._preferences.get_boolean('auto-accent-show-indicator'))
+            if (this._preferences.get_boolean('auto-accent-enable') &&
+                this._preferences.get_boolean('auto-accent-show-indicator'))
                 this._createAutoIndicator();
             else if (!this._preferences.get_boolean('auto-accent-show-indicator'))
                 this._destroyAutoIndicator();
@@ -252,7 +270,8 @@ export default class GnomeThemeTweaksExtension extends Extension {
 
         if (this._preferences.get_boolean('auto-accent-enable')) {
             this._setupBackgroundMonitor();
-            if (this._preferences.get_boolean('auto-accent-show-indicator')) this._createAutoIndicator();
+            if (this._preferences.get_boolean('auto-accent-show-indicator'))
+                this._createAutoIndicator();
             this._scheduleAccentRefresh();
         }
     }
@@ -262,11 +281,8 @@ export default class GnomeThemeTweaksExtension extends Extension {
         try {
             const backgroundFile = Gio.File.new_for_path(GLib.build_filenamev([GLib.get_home_dir(), '.config', 'background']));
             this._backgroundMonitor = backgroundFile.monitor(Gio.FileMonitorFlags.NONE, null);
-            this._backgroundMonitor.connect('changed', (_monitor, file, otherFile, eventType) => {
-                if (eventType !== Gio.FileMonitorEvent.CREATED) return;
-                if (file?.get_basename() !== 'background') return;
-                journal('Background file changed.');
-                this._onWallpaperChanged();
+            this._backgroundMonitor.connect('changed', (_monitor, _file, _otherFile, eventType) => {
+                if (eventType === Gio.FileMonitorEvent.CREATED) this._onWallpaperChanged();
             });
             journal(`Watching ${backgroundFile.get_path()} for wallpaper changes`);
         } catch (e) {
@@ -293,7 +309,7 @@ export default class GnomeThemeTweaksExtension extends Extension {
             GLib.source_remove(this._accentTimeout);
             this._accentTimeout = 0;
         }
-        this._scheduleAccentRefresh(600);
+        this._scheduleAccentRefresh(50);
     }
 
     _scheduleAccentRefresh(delay = 150) {
@@ -383,8 +399,7 @@ export default class GnomeThemeTweaksExtension extends Extension {
     }
     _copyFile(source,destination) {
         if (!source.query_exists(null)) return;
-        try { source.copy(destination,Gio.FileCopyFlags.OVERWRITE,null,null); }
-        catch(e) { console.warn(`[GNOME Theme Tweaks] Could not copy ${source.get_path()}: ${e.message}`); }
+        try { source.copy(destination,Gio.FileCopyFlags.OVERWRITE,null,null); } catch(e) { console.warn(`[GNOME Theme Tweaks] Could not copy ${source.get_path()}: ${e.message}`); }
     }
     _copyDirectory(source,destination) {
         if (!source.query_exists(null)) return;
@@ -411,8 +426,7 @@ export default class GnomeThemeTweaksExtension extends Extension {
             const info=file.query_info('standard::type',Gio.FileQueryInfoFlags.NONE,null);
             if (info.get_file_type()===Gio.FileType.DIRECTORY) {
                 const e=file.enumerate_children('standard::name',Gio.FileQueryInfoFlags.NONE,null);
-                let child;
-                while ((child=e.next_file(null))!==null) this._removePath(file.get_child(child.get_name()));
+                let child; while ((child=e.next_file(null))!==null) this._removePath(file.get_child(child.get_name()));
                 e.close(null);
             }
             file.delete(null);
